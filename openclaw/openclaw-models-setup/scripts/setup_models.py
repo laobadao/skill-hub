@@ -113,6 +113,9 @@ def setup_models():
     for a in agent_list:
         if a.get('model', '').startswith('litellm-google/'):
             a['model'] = a['model'].replace('litellm-google/', 'litellm/')
+        # Remove hardcoded workspace paths
+        if 'workspace' in a and 'C:/Users/junjun.zhao/.openclaw' in a['workspace']:
+            del a['workspace']
 
     # Add missing agents
     for a_id, (a_name, a_model) in agents_to_add.items():
@@ -123,7 +126,6 @@ def setup_models():
             agent_list.append({
                 'id': a_id,
                 'name': a_name,
-                'workspace': f'C:/Users/junjun.zhao/.openclaw/workspace-{a_id}',
                 'model': a_model
             })
 
