@@ -17,30 +17,43 @@ def setup_models():
 
     # Model definitions
     models_to_add = {
-        'deepseek-v3.2': False,
-        'deepseek-v3.2-think': True,
-        'kimi-k2.5': False,
-        'MiniMax-M2.5': False,
-        'glm-5': False,
-        'qwen3.5-plus': False,
-        'qwen3.6-plus': False,
-        'gemini/gemini-3.1-pro-preview': True,
-        'gemini/gemini-2.5-pro': False,
-        'gemini/gemini-2.5-flash-lite': False,
-        'gemini/gemini-2.5-flash': False,
-        'gemini/gemini-3-flash-preview': False,
-        'gemini/gemini-3.1-flash-lite-preview': False
+        'deepseek-v4-pro': {'reasoning': True, 'vision': True, 'context': 195000},
+        'deepseek-v3.2': {'reasoning': False},
+        'deepseek-v3.2-think': {'reasoning': True},
+        'kimi-k2.5': {'reasoning': False},
+        'MiniMax-M2.5': {'reasoning': False},
+        'glm-5': {'reasoning': False},
+        'qwen3.5-plus': {'reasoning': False},
+        'qwen3.6-plus': {'reasoning': False},
+        'gemini/gemini-3.1-pro-preview': {'reasoning': True},
+        'gemini/gemini-2.5-pro': {'reasoning': False},
+        'gemini/gemini-2.5-flash-lite': {'reasoning': False},
+        'gemini/gemini-2.5-flash': {'reasoning': False},
+        'gemini/gemini-3-flash-preview': {'reasoning': False},
+        'gemini/gemini-3.1-flash-lite-preview': {'reasoning': False}
     }
 
-    for m_id, reasoning in models_to_add.items():
-        if m_id not in litellm_model_ids:
+    for m_id, props in models_to_add.items():
+        existing_model = next((m for m in litellm_models if m['id'] == m_id), None)
+        if existing_model:
+            if props.get('reasoning'):
+                existing_model['reasoning'] = True
+            if props.get('vision'):
+                existing_model['vision'] = True
+            if props.get('context'):
+                existing_model['context'] = props['context']
+        else:
             new_model = {
                 'id': m_id,
                 'name': m_id,
                 'api': 'openai-completions'
             }
-            if reasoning:
+            if props.get('reasoning'):
                 new_model['reasoning'] = True
+            if props.get('vision'):
+                new_model['vision'] = True
+            if props.get('context'):
+                new_model['context'] = props['context']
             litellm_models.append(new_model)
 
     # Disable old litellm-google if exists
@@ -50,6 +63,7 @@ def setup_models():
     # 2. Setup Aliases
     defaults_models = data.setdefault('agents', {}).setdefault('defaults', {}).setdefault('models', {})
     aliases = {
+        'litellm/deepseek-v4-pro': 'ds4p',
         'litellm/deepseek-v3.2': 'litellm-ds32',
         'litellm/deepseek-v3.2-think': 'litellm-ds32t',
         'litellm/kimi-k2.5': 'litellm-kimi25',
@@ -65,7 +79,7 @@ def setup_models():
         'litellm/gemini/gemini-3.1-flash-lite-preview': 'gemini-31flp'
     }
 
-    keys_to_delete = [k for k in defaults_models.keys() if k.startswith('litellm-google/')]
+    keys_to_delete = [k for k in defaults_models.keys() if k.startswith('litellm-google/') or k == 'litellm/deepseek-v4-pro']
     for k in keys_to_delete:
         del defaults_models[k]
         
@@ -74,9 +88,14 @@ def setup_models():
 
     # 3. Setup Agents List
     agent_list = data.setdefault('agents', {}).setdefault('list', [])
+    
+    # Remove old agent litellm-ds4pro if exists
+    agent_list[:] = [a for a in agent_list if a.get('id') != 'litellm-ds4pro']
+    
     agent_map = {a['id']: a for a in agent_list}
 
     agents_to_add = {
+        'ds4p': ('LiteLLM DeepSeek V4 Pro', 'litellm/deepseek-v4-pro'),
         'litellm-ds32': ('LiteLLM DeepSeek V3.2', 'litellm/deepseek-v3.2'),
         'litellm-ds32t': ('LiteLLM DeepSeek V3.2 Think', 'litellm/deepseek-v3.2-think'),
         'litellm-kimi25': ('LiteLLM Kimi K2.5', 'litellm/kimi-k2.5'),
