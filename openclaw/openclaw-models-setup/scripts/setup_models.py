@@ -38,10 +38,12 @@ def setup_models():
         if existing_model:
             if props.get('reasoning'):
                 existing_model['reasoning'] = True
-            if props.get('vision'):
-                existing_model['vision'] = True
-            if props.get('context'):
-                existing_model['context'] = props['context']
+            # OpenClaw 0.x JSON schema may reject "vision" and "context" directly on the model level
+            # We'll remove them or skip them to avoid "Unrecognized keys" errors.
+            if 'vision' in existing_model:
+                del existing_model['vision']
+            if 'context' in existing_model:
+                del existing_model['context']
         else:
             new_model = {
                 'id': m_id,
@@ -50,10 +52,6 @@ def setup_models():
             }
             if props.get('reasoning'):
                 new_model['reasoning'] = True
-            if props.get('vision'):
-                new_model['vision'] = True
-            if props.get('context'):
-                new_model['context'] = props['context']
             litellm_models.append(new_model)
 
     # Disable old litellm-google if exists
